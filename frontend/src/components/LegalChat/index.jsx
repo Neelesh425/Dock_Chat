@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './index.scss'
 
 const LegalChat = () => {
+  const navigate = useNavigate()
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -32,15 +34,39 @@ const LegalChat = () => {
     setLoading(true)
 
     try {
+      // Get authentication token
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: 'You are not logged in. Please sign in again.' 
+        }])
+        navigate('/signin')
+        return
+      }
+
       const response = await fetch('http://localhost:8000/api/legal/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // Added auth header
         },
         body: JSON.stringify({ message: userMessage })
       })
 
       if (!response.ok) {
+        // Handle authentication errors
+        if (response.status === 401) {
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: 'Session expired. Please sign in again.' 
+          }])
+          navigate('/signin')
+          return
+        }
         throw new Error('Failed to get response')
       }
 

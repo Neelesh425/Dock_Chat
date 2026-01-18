@@ -36,15 +36,35 @@ const Upload = () => {
     setError(null)
     
     try {
+      // Get authentication token
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        setError('You are not logged in. Please sign in again.')
+        navigate('/signin')
+        return
+      }
+
       const formData = new FormData()
       formData.append('file', file)
 
       const response = await fetch('http://localhost:8000/upload', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}` // Added auth header
+        },
         body: formData,
       })
 
       if (!response.ok) {
+        // Handle authentication errors
+        if (response.status === 401) {
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
+          setError('Session expired. Please sign in again.')
+          navigate('/signin')
+          return
+        }
         throw new Error('Upload failed')
       }
 

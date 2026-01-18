@@ -41,10 +41,20 @@ const Chat = () => {
     setError(null)
 
     try {
+      // Get authentication token
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        setError('You are not logged in. Please sign in again.')
+        navigate('/signin')
+        return
+      }
+
       const response = await fetch('http://localhost:8000/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // Added auth header
         },
         body: JSON.stringify({
           document_id: documentId,
@@ -54,6 +64,14 @@ const Chat = () => {
       })
 
       if (!response.ok) {
+        // Handle authentication errors
+        if (response.status === 401) {
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
+          setError('Session expired. Please sign in again.')
+          navigate('/signin')
+          return
+        }
         throw new Error('Failed to get response')
       }
 
